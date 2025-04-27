@@ -2,6 +2,9 @@
 
 A local chat implementation using HTML, JavaScript, and Web Workers for efficient message processing and real-time communication.
 
+## Demo
+You can try out the live demo at [https://appunni.github.io/local-chat/](https://appunni.github.io/local-chat/)
+
 ## Files
 - `index.html`: Main HTML file containing the chat interface
 - `main.js`: Main JavaScript file handling the chat functionality
