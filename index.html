@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 h-screen">
+    <div class="container mx-auto p-4 h-full flex flex-col">
+        <div class="bg-white rounded-lg shadow-lg p-6 flex-1 flex flex-col">
+            <h1 class="text-2xl font-bold mb-4">Local Chat</h1>
+
+            <!-- Loading indicator -->
+            <div id="loading" class="hidden">
+                <div class="flex items-center justify-center space-x-2 mb-4">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                    <span class="text-blue-500" id="loading-text">Loading model...</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="bg-blue-500 h-2.5 rounded-full" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Chat messages container -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto mb-4 space-y-4">
+                <!-- Messages will be added here dynamically -->
+            </div>
+
+            <!-- Input form -->
+            <form id="chat-form" class="flex space-x-2">
+                <input type="text" id="user-input"
+                    class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Type your message..." disabled>
+                <button type="submit" id="send-button"
+                    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400" disabled>
+                    Send
+                </button>
+                <button type="button" id="stop-button"
+                    class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 hidden">
+                    Stop
+                </button>
+            </form>
+        </div>
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
