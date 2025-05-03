@@ -30,19 +30,40 @@ class TextGenerationPipeline {
   
   static async getInstance(progress_callback = null) {
     const startTime = performance.now();
+    let lastProgressTime = startTime;
+    let lastProgress = 0;
+    
     const wrappedCallback = (progress) => {
       console.log('Raw progress data:', progress);
+      
+      // Only send progress updates for meaningful changes
       if (progress?.status === 'progress') {
         const currentTime = performance.now();
         const elapsedTime = currentTime - startTime;
-        const estimatedTotal = elapsedTime / (progress.progress / 100);
-        const remainingTime = Math.max(0, estimatedTotal - elapsedTime);
+        const timeSinceLastUpdate = currentTime - lastProgressTime;
+        
+        // Calculate progress delta
+        const currentProgress = progress.progress || 0;
+        const progressDelta = currentProgress - lastProgress;
+        
+        // Only update time remaining if we have meaningful progress
+        let timeRemaining = 0;
+        if (progressDelta > 0 && timeSinceLastUpdate > 0) {
+          const progressRate = progressDelta / timeSinceLastUpdate;
+          const remainingProgress = 100 - currentProgress;
+          timeRemaining = (remainingProgress / progressRate);
+          
+          // Update tracking variables
+          lastProgressTime = currentTime;
+          lastProgress = currentProgress;
+        }
         
         self.postMessage({
           status: 'progress',
-          progress: progress.progress || 0,
-          timeRemaining: remainingTime,
-          stage: progress.name || 'model'
+          progress: currentProgress,
+          timeRemaining: timeRemaining,
+          stage: progress.file || progress.name || 'model',
+          loaded: progress.loaded
         });
       }
     };

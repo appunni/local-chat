@@ -130,11 +130,40 @@ worker.addEventListener('message', (e) => {
                 const roundedProgress = Math.round(progress);
                 modelProgress.style.width = `${progress}%`;
                 modelPercent.textContent = `${roundedProgress}%`;
-                if (data.timeRemaining) {
-                    estimatedTime.textContent = `${formatTime(data.timeRemaining)} remaining`;
+                
+                // Update current file information
+                const stage = e.data.stage || '';
+                const currentFile = document.getElementById('current-file');
+                
+                // Display loading stage with appropriate message
+                if (stage.includes('config.json')) {
+                    loadingText.textContent = 'Loading Model Configuration';
+                    currentFile.textContent = 'config.json';
+                } else if (stage.includes('generation_config.json')) {
+                    loadingText.textContent = 'Loading Generation Settings';
+                    currentFile.textContent = 'generation_config.json';
+                } else if (stage.includes('model_q4f16.onnx')) {
+                    loadingText.textContent = 'Loading Model Weights';
+                    currentFile.textContent = 'model_q4f16.onnx';
+                    // Show loaded size if available
+                    if (e.data.loaded) {
+                        const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
+                        currentFile.textContent += ` (${loadedMB} MB loaded)`;
+                    }
+                } else {
+                    loadingText.textContent = 'Loading Model';
+                    currentFile.textContent = '';
                 }
-                if (data.stage) {
-                    loadingText.textContent = `Loading ${data.stage}...`;
+                
+                // Safe access to timeRemaining from e.data
+                const timeRemaining = e.data.timeRemaining;
+                if (typeof timeRemaining === 'number' && timeRemaining > 0) {
+                    // Only show time if it's reasonable (less than 1 hour)
+                    if (timeRemaining < 3600000) {
+                        estimatedTime.textContent = `${formatTime(timeRemaining)} remaining`;
+                    } else {
+                        estimatedTime.textContent = 'Calculating remaining time...';
+                    }
                 }
             }
             break;
