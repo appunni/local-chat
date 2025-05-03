@@ -116,18 +116,17 @@ worker.addEventListener('message', (e) => {
             loadingText.textContent = data;
             break;
 
-        case 'message':
-            if (e.data.loaded !== undefined) {
-                // Calculate and update progress
-                const progress = (e.data.loaded / MODEL_SIZE) * 100;
-                const roundedProgress = Math.round(progress);
-                modelProgress.style.width = `${progress}%`;
-                modelPercent.textContent = `${roundedProgress}%`;
-                
-                // Update loaded size
-                const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
-                bytesLoaded.textContent = `${loadedMB} MB loaded`;
-            }
+        case 'progress':
+            loadingDiv.classList.remove('hidden');
+            // Calculate and update progress
+            const progress = (e.data.loaded / MODEL_SIZE) * 100;
+            const roundedProgress = Math.round(progress);
+            modelProgress.style.width = `${progress}%`;
+            modelPercent.textContent = `${roundedProgress}%`;
+            
+            // Update loaded size
+            const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
+            bytesLoaded.textContent = `${loadedMB} MB loaded`;
             
             // Update model name if provided
             if (e.data.modelName && loadingText) {

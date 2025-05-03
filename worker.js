@@ -36,7 +36,11 @@ class TextGenerationPipeline {
       if (progress?.file?.includes('model_q4f16.onnx')) {
         const modelName = TextGenerationPipeline.model_id.split('/').pop();
         const loaded = progress.loaded || 0;
-        self.postMessage({ loaded, modelName });
+        self.postMessage({
+          status: 'progress',
+          loaded,
+          modelName
+        });
       }
     };
 
@@ -47,7 +51,11 @@ class TextGenerationPipeline {
 
     if (!this.model) {
       const modelName = this.model_id.split('/').pop();
-      self.postMessage({ modelName });
+      self.postMessage({
+        status: 'loading',
+        modelName,
+        data: `Loading ${modelName}...`
+      });
       
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
         dtype: "q4f16",
