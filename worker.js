@@ -29,17 +29,32 @@ class TextGenerationPipeline {
   static model_id = "HuggingFaceTB/SmolLM2-1.7B-Instruct";
 
   static async getInstance(progress_callback = null) {
-    this.tokenizer ??= AutoTokenizer.from_pretrained(this.model_id, {
-      progress_callback,
-    });
+    const wrappedCallback = (progress) => {
+      console.log('Raw progress data:', progress);
+      if (progress?.status === 'progress') {
+        self.postMessage({
+          status: 'progress',
+          progress: progress.progress,
+          text: `Loading: ${Math.round(progress.progress)}%`
+        });
+      }
+    };
 
-    this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
-      dtype: "q4f16",
-      device: "webgpu",
-      progress_callback,
-    });
+    if (!this.tokenizer) {
+      this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
+        progress_callback: wrappedCallback,
+      });
+    }
 
-    return Promise.all([this.tokenizer, this.model]);
+    if (!this.model) {
+      this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
+        dtype: "q4f16",
+        device: "webgpu",
+        progress_callback: wrappedCallback,
+      });
+    }
+
+    return [this.tokenizer, this.model];
   }
 }
 
@@ -108,100 +123,21 @@ async function generate(messages) {
   });
 }
 
-// Track loading start time and phases
-let loadStartTime = 0;
-const TOTAL_MODEL_SIZE = 1.7 * 1024 * 1024 * 1024; // 1.7GB in bytes
-
-function calculateTimeRemaining(loaded, total, elapsedMs) {
-  const bytesPerMs = loaded / elapsedMs;
-  const remainingBytes = total - loaded;
-  const remainingMs = remainingBytes / bytesPerMs;
-  const remainingMinutes = Math.ceil(remainingMs / 60000);
-  return remainingMinutes;
-}
-
-function formatBytes(bytes) {
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  if (bytes === 0) return '0 Byte';
-  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
-}
-
 async function load() {
-  loadStartTime = performance.now();
-  
-  // Phase 1: Initialization
   self.postMessage({
     status: "loading",
-    phase: "initialization",
     data: "Initializing model loading...",
-    progress: 0,
-    totalSize: formatBytes(TOTAL_MODEL_SIZE)
   });
 
-  // Load the pipeline and save it for future use.
-  const [tokenizer, model] = await TextGenerationPipeline.getInstance((progress) => {
-    const elapsedMs = performance.now() - loadStartTime;
-    
-    // Handle progress updates with safety checks
-    if (progress?.status === "progress" && progress?.data) {
-      try {
-        // Safely access data with fallbacks
-        const loaded = progress.data?.loaded ?? 0;
-        const total = progress.data?.total ?? TOTAL_MODEL_SIZE;
-        const percent = Math.round((loaded / total) * 100);
-        const remainingMinutes = loaded > 0 ? calculateTimeRemaining(loaded, total, elapsedMs) : null;
-        
-        self.postMessage({
-          status: "progress",
-          phase: "downloading",
-          data: "Downloading model weights...",
-          loaded: formatBytes(loaded),
-          total: formatBytes(total),
-          progress: percent,
-          timeRemaining: remainingMinutes,
-          elapsedTime: Math.round(elapsedMs / 1000)
-        });
-      } catch (error) {
-        console.error('Error processing progress data:', error);
-        // Send a basic progress update on error
-        self.postMessage({
-          status: "progress",
-          phase: "downloading",
-          data: "Downloading model weights...",
-          progress: 0
-        });
-      }
-    }
-  });
+  // Load the pipeline and save it for future use
+  const [tokenizer, model] = await TextGenerationPipeline.getInstance();
 
-  // Phase 2: Compilation
-  self.postMessage({
-    status: "loading",
-    phase: "compilation",
-    data: "Compiling shaders...",
-    progress: 0
-  });
-
-  // Run model with dummy input to compile shaders
+  // Warm up the model
   const inputs = tokenizer("a");
-  
-  // Phase 3: Warm-up
-  self.postMessage({
-    status: "loading",
-    phase: "warmup",
-    data: "Warming up model...",
-    progress: 50
-  });
-  
   await model.generate({ ...inputs, max_new_tokens: 1 });
-  
-  // Completion
-  const totalTime = Math.round((performance.now() - loadStartTime) / 1000);
+
   self.postMessage({ 
-    status: "ready",
-    totalLoadTime: totalTime,
-    message: `Model loaded successfully in ${totalTime} seconds`
+    status: "ready"
   });
 }
 
