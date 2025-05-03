@@ -29,41 +29,16 @@ class TextGenerationPipeline {
   static model_id = "HuggingFaceTB/SmolLM2-1.7B-Instruct";
   
   static async getInstance(progress_callback = null) {
-    const startTime = performance.now();
-    let lastProgressTime = startTime;
-    let lastProgress = 0;
-    
     const wrappedCallback = (progress) => {
       console.log('Raw progress data:', progress);
       
-      // Only send progress updates for meaningful changes
-      if (progress?.status === 'progress') {
-        const currentTime = performance.now();
-        const elapsedTime = currentTime - startTime;
-        const timeSinceLastUpdate = currentTime - lastProgressTime;
-        
-        // Calculate progress delta
-        const currentProgress = progress.progress || 0;
-        const progressDelta = currentProgress - lastProgress;
-        
-        // Only update time remaining if we have meaningful progress
-        let timeRemaining = 0;
-        if (progressDelta > 0 && timeSinceLastUpdate > 0) {
-          const progressRate = progressDelta / timeSinceLastUpdate;
-          const remainingProgress = 100 - currentProgress;
-          timeRemaining = (remainingProgress / progressRate);
-          
-          // Update tracking variables
-          lastProgressTime = currentTime;
-          lastProgress = currentProgress;
-        }
-        
+      // Only report progress for the .onnx file
+      if (progress?.status === 'progress' && progress?.file?.includes('model_q4f16.onnx')) {
         self.postMessage({
           status: 'progress',
-          progress: currentProgress,
-          timeRemaining: timeRemaining,
-          stage: progress.file || progress.name || 'model',
-          loaded: progress.loaded
+          progress: progress.progress || 0,
+          loaded: progress.loaded,
+          total: progress.total
         });
       }
     };
@@ -77,7 +52,7 @@ class TextGenerationPipeline {
       console.log('Loading model...');
       self.postMessage({
         status: 'loading',
-        data: 'Preparing to load model...'
+        data: 'Loading AI model...'
       });
       
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {

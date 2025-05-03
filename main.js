@@ -14,7 +14,7 @@ const stopButton = document.getElementById('stop-button');
 // Progress tracking elements
 const modelProgress = document.getElementById('model-progress');
 const modelPercent = document.getElementById('model-percent');
-const estimatedTime = document.getElementById('estimated-time');
+const bytesLoaded = document.getElementById('bytes-loaded');
 
 // Helper function to format time
 function formatTime(ms) {
@@ -131,39 +131,10 @@ worker.addEventListener('message', (e) => {
                 modelProgress.style.width = `${progress}%`;
                 modelPercent.textContent = `${roundedProgress}%`;
                 
-                // Update current file information
-                const stage = e.data.stage || '';
-                const currentFile = document.getElementById('current-file');
-                
-                // Display loading stage with appropriate message
-                if (stage.includes('config.json')) {
-                    loadingText.textContent = 'Loading Model Configuration';
-                    currentFile.textContent = 'config.json';
-                } else if (stage.includes('generation_config.json')) {
-                    loadingText.textContent = 'Loading Generation Settings';
-                    currentFile.textContent = 'generation_config.json';
-                } else if (stage.includes('model_q4f16.onnx')) {
-                    loadingText.textContent = 'Loading Model Weights';
-                    currentFile.textContent = 'model_q4f16.onnx';
-                    // Show loaded size if available
-                    if (e.data.loaded) {
-                        const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
-                        currentFile.textContent += ` (${loadedMB} MB loaded)`;
-                    }
-                } else {
-                    loadingText.textContent = 'Loading Model';
-                    currentFile.textContent = '';
-                }
-                
-                // Safe access to timeRemaining from e.data
-                const timeRemaining = e.data.timeRemaining;
-                if (typeof timeRemaining === 'number' && timeRemaining > 0) {
-                    // Only show time if it's reasonable (less than 1 hour)
-                    if (timeRemaining < 3600000) {
-                        estimatedTime.textContent = `${formatTime(timeRemaining)} remaining`;
-                    } else {
-                        estimatedTime.textContent = 'Calculating remaining time...';
-                    }
+                // Update bytes loaded
+                if (e.data.loaded) {
+                    const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
+                    bytesLoaded.textContent = `${loadedMB} MB loaded`;
                 }
             }
             break;
@@ -171,7 +142,7 @@ worker.addEventListener('message', (e) => {
         case 'ready':
             console.log('Components loaded successfully');
             loadingText.textContent = 'Ready to chat!';
-            estimatedTime.textContent = 'Loading complete';
+            bytesLoaded.textContent = 'Loading complete';
             setTimeout(hideLoading, 1500);
             break;
 
