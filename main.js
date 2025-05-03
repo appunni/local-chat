@@ -5,12 +5,17 @@ console.log('Web Worker initialized');
 // UI Elements
 const loadingDiv = document.getElementById('loading');
 const loadingText = document.getElementById('loading-text');
-const progressBar = document.getElementById('progress-bar');
 const chatMessages = document.getElementById('chat-messages');
 const chatForm = document.getElementById('chat-form');
 const userInput = document.getElementById('user-input');
 const sendButton = document.getElementById('send-button');
 const stopButton = document.getElementById('stop-button');
+
+// Progress tracking elements
+const tokenizerProgress = document.getElementById('tokenizer-progress');
+const modelProgress = document.getElementById('model-progress');
+const tokenizerPercent = document.getElementById('tokenizer-percent');
+const modelPercent = document.getElementById('model-percent');
 
 // Chat history with system message
 let messages = [{
@@ -91,7 +96,7 @@ stopButton.addEventListener('click', () => {
 // Handle worker messages
 let currentAssistantMessage = '';
 worker.addEventListener('message', (e) => {
-    const { status, data, output, progress, text } = e.data;
+    const { status, data, output, type, progress } = e.data;
     console.log('Received worker message:', e.data);
 
     switch (status) {
@@ -112,15 +117,22 @@ worker.addEventListener('message', (e) => {
         case 'progress':
             loadingDiv.classList.remove('hidden');
             if (typeof progress === 'number') {
-                console.log('Loading progress:', progress + '%');
-                progressBar.style.width = `${progress}%`;
-                loadingText.textContent = text || `Loading: ${Math.round(progress)}%`;
+                console.log(`${type} progress:`, progress + '%');
+                const roundedProgress = Math.round(progress);
+                
+                if (type === 'tokenizer') {
+                    tokenizerProgress.style.width = `${progress}%`;
+                    tokenizerPercent.textContent = `${roundedProgress}%`;
+                } else if (type === 'model') {
+                    modelProgress.style.width = `${progress}%`;
+                    modelPercent.textContent = `${roundedProgress}%`;
+                }
             }
             break;
 
         case 'ready':
-            console.log('Model ready');
-            loadingText.textContent = 'Model loaded successfully!';
+            console.log('Components loaded successfully');
+            loadingText.textContent = 'Ready to chat!';
             setTimeout(hideLoading, 1500);
             break;
 

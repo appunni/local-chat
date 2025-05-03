@@ -15,14 +15,35 @@
 
             <!-- Loading indicator -->
             <div id="loading" class="hidden mb-4">
-                <div class="flex items-center justify-center space-x-2 mb-2">
-                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                    <div id="loading-text" class="text-blue-500">Loading model...</div>
+                <div class="flex items-center justify-center mb-4">
+                    <div id="loading-text" class="text-blue-500 font-medium">Loading components...</div>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full">
-                    <div id="progress-bar" 
-                         class="bg-blue-500 h-4 rounded-full transition-all duration-200" 
-                         style="width: 0%">
+                
+                <!-- Tokenizer Loading -->
+                <div class="mb-3">
+                    <div class="flex justify-between text-sm font-medium text-gray-600 mb-1">
+                        <span>Tokenizer</span>
+                        <span id="tokenizer-percent">0%</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-200 rounded-full">
+                        <div id="tokenizer-progress" 
+                             class="h-2 bg-blue-500 rounded-full transition-all duration-200" 
+                             style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Model Loading -->
+                <div class="mb-3">
+                    <div class="flex justify-between text-sm font-medium text-gray-600 mb-1">
+                        <span>Model</span>
+                        <span id="model-percent">0%</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-200 rounded-full">
+                        <div id="model-progress" 
+                             class="h-2 bg-green-500 rounded-full transition-all duration-200" 
+                             style="width: 0%">
+                        </div>
                     </div>
                 </div>
             </div>

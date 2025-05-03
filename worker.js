@@ -27,25 +27,27 @@ async function check() {
  */
 class TextGenerationPipeline {
   static model_id = "HuggingFaceTB/SmolLM2-1.7B-Instruct";
-  static currentProgress = 0;
-
+  
   static async getInstance(progress_callback = null) {
     const wrappedCallback = (progress) => {
-      if (progress?.status === 'progress' && progress?.progress > this.currentProgress) {
-        this.currentProgress = progress.progress;
+      console.log('Raw progress data:', progress);
+      if (progress?.status === 'progress') {
+        const type = progress.name.includes('tokenizer') ? 'tokenizer' : 'model';
         self.postMessage({
           status: 'progress',
-          progress: this.currentProgress,
-          text: `Loading: ${Math.round(this.currentProgress)}%`
+          type: type,
+          progress: progress.progress || 0
         });
       }
     };
 
-    // Reset progress at the start of loading
-    this.currentProgress = 0;
-
     if (!this.tokenizer) {
       console.log('Loading tokenizer...');
+      self.postMessage({
+        status: 'loading',
+        data: 'Loading tokenizer...'
+      });
+      
       this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
         progress_callback: wrappedCallback,
       });
@@ -53,6 +55,11 @@ class TextGenerationPipeline {
 
     if (!this.model) {
       console.log('Loading model...');
+      self.postMessage({
+        status: 'loading',
+        data: 'Loading model...'
+      });
+      
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
         dtype: "q4f16",
         device: "webgpu",
