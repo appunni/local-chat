@@ -92,7 +92,12 @@ stopButton.addEventListener('click', () => {
 let currentAssistantMessage = '';
 worker.addEventListener('message', (e) => {
     const { status, data, output, phase, progress, loaded, total, timeRemaining, elapsedTime, totalLoadTime, message } = e.data;
-    console.log('Received worker message:', e.data);
+    console.log('Received worker message:', JSON.stringify(e.data, null, 2));
+
+    // Ensure progress bar is visible during loading
+    if (status === 'loading' || status === 'progress') {
+        loadingDiv.classList.remove('hidden');
+    }
 
     switch (status) {
         case 'error':
