@@ -33,7 +33,6 @@ class TextGenerationPipeline {
     const wrappedCallback = (progress) => {
       console.log('Raw progress data:', progress);
       if (progress?.status === 'progress') {
-        const type = progress.name.includes('tokenizer') ? 'tokenizer' : 'model';
         const currentTime = performance.now();
         const elapsedTime = currentTime - startTime;
         const estimatedTotal = elapsedTime / (progress.progress / 100);
@@ -41,31 +40,23 @@ class TextGenerationPipeline {
         
         self.postMessage({
           status: 'progress',
-          type: type,
           progress: progress.progress || 0,
           timeRemaining: remainingTime,
-          stage: progress.name || type
+          stage: progress.name || 'model'
         });
       }
     };
 
     if (!this.tokenizer) {
       console.log('Loading tokenizer...');
-      self.postMessage({
-        status: 'loading',
-        data: 'Loading tokenizer...'
-      });
-      
-      this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
-        progress_callback: wrappedCallback,
-      });
+      this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id);
     }
 
     if (!this.model) {
       console.log('Loading model...');
       self.postMessage({
         status: 'loading',
-        data: 'Loading model...'
+        data: 'Preparing to load model...'
       });
       
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {

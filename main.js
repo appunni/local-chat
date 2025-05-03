@@ -12,9 +12,7 @@ const sendButton = document.getElementById('send-button');
 const stopButton = document.getElementById('stop-button');
 
 // Progress tracking elements
-const tokenizerProgress = document.getElementById('tokenizer-progress');
 const modelProgress = document.getElementById('model-progress');
-const tokenizerPercent = document.getElementById('tokenizer-percent');
 const modelPercent = document.getElementById('model-percent');
 const estimatedTime = document.getElementById('estimated-time');
 
@@ -128,23 +126,13 @@ worker.addEventListener('message', (e) => {
         case 'progress':
             loadingDiv.classList.remove('hidden');
             if (typeof progress === 'number') {
-                console.log(`${type} progress:`, progress + '%');
+                console.log('Model loading progress:', progress + '%');
                 const roundedProgress = Math.round(progress);
-                
-                if (type === 'tokenizer') {
-                    tokenizerProgress.style.width = `${progress}%`;
-                    tokenizerPercent.textContent = `${roundedProgress}%`;
-                    if (data.timeRemaining) {
-                        estimatedTime.textContent = `Tokenizer: ${formatTime(data.timeRemaining)} remaining`;
-                    }
-                } else if (type === 'model') {
-                    modelProgress.style.width = `${progress}%`;
-                    modelPercent.textContent = `${roundedProgress}%`;
-                    if (data.timeRemaining) {
-                        estimatedTime.textContent = `Model: ${formatTime(data.timeRemaining)} remaining`;
-                    }
+                modelProgress.style.width = `${progress}%`;
+                modelPercent.textContent = `${roundedProgress}%`;
+                if (data.timeRemaining) {
+                    estimatedTime.textContent = `${formatTime(data.timeRemaining)} remaining`;
                 }
-                
                 if (data.stage) {
                     loadingText.textContent = `Loading ${data.stage}...`;
                 }
