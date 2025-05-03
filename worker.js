@@ -35,12 +35,20 @@ class TextGenerationPipeline {
       // Only report .onnx file loading progress
       if (progress?.file?.includes('model_q4f16.onnx')) {
         const modelName = TextGenerationPipeline.model_id.split('/').pop();
-        const loaded = progress.loaded || 0;
-        self.postMessage({
-          status: 'progress',
-          loaded,
-          modelName
-        });
+        // Only send progress for actual loading updates
+        if (progress.status === 'progress') {
+          const loaded = progress.loaded || 0;
+          self.postMessage({
+            status: 'progress',
+            loaded,
+            modelName
+          });
+        } else if (progress.status === 'done') {
+          self.postMessage({
+            status: 'progress_complete',
+            modelName
+          });
+        }
       }
     };
 

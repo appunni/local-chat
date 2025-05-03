@@ -118,19 +118,32 @@ worker.addEventListener('message', (e) => {
 
         case 'progress':
             loadingDiv.classList.remove('hidden');
-            // Calculate and update progress
-            const progress = (e.data.loaded / MODEL_SIZE) * 100;
-            const roundedProgress = Math.round(progress);
-            modelProgress.style.width = `${progress}%`;
-            modelPercent.textContent = `${roundedProgress}%`;
-            
-            // Update loaded size
-            const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
-            bytesLoaded.textContent = `${loadedMB} MB loaded`;
+            const loaded = e.data.loaded || 0;
+            if (loaded > 0) { // Only update if we have valid loaded bytes
+                // Calculate and update progress
+                const progress = Math.min((loaded / MODEL_SIZE) * 100, 100);
+                const roundedProgress = Math.round(progress);
+                modelProgress.style.width = `${progress}%`;
+                modelPercent.textContent = `${roundedProgress}%`;
+                
+                // Update loaded size
+                const loadedMB = (loaded / (1024 * 1024)).toFixed(1);
+                bytesLoaded.textContent = `${loadedMB} MB loaded`;
+            }
             
             // Update model name if provided
             if (e.data.modelName && loadingText) {
                 loadingText.textContent = `Loading ${e.data.modelName}`;
+            }
+            break;
+
+        case 'progress_complete':
+            // Keep progress at 100%
+            modelProgress.style.width = '100%';
+            modelPercent.textContent = '100%';
+            bytesLoaded.textContent = `${(MODEL_SIZE / (1024 * 1024)).toFixed(1)} MB loaded`;
+            if (e.data.modelName) {
+                loadingText.textContent = `Loading ${e.data.modelName} complete`;
             }
             break;
 
