@@ -32,16 +32,11 @@ class TextGenerationPipeline {
     const wrappedCallback = (progress) => {
       console.log('Raw progress data:', progress);
       
-      // Only report progress for the .onnx file
-      if (progress?.status === 'progress' && progress?.file?.includes('model_q4f16.onnx')) {
+      // Only report .onnx file loading progress
+      if (progress?.file?.includes('model_q4f16.onnx')) {
         const modelName = TextGenerationPipeline.model_id.split('/').pop();
-        self.postMessage({
-          status: 'progress',
-          progress: progress.progress || 0,
-          loaded: progress.loaded,
-          total: progress.total,
-          modelName: modelName
-        });
+        const loaded = progress.loaded || 0;
+        self.postMessage({ loaded, modelName });
       }
     };
 
@@ -51,13 +46,8 @@ class TextGenerationPipeline {
     }
 
     if (!this.model) {
-      console.log('Loading model...');
       const modelName = this.model_id.split('/').pop();
-      self.postMessage({
-        status: 'loading',
-        data: `Loading ${modelName}...`,
-        modelName: modelName
-      });
+      self.postMessage({ modelName });
       
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
         dtype: "q4f16",

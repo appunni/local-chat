@@ -16,15 +16,8 @@ const modelProgress = document.getElementById('model-progress');
 const modelPercent = document.getElementById('model-percent');
 const bytesLoaded = document.getElementById('bytes-loaded');
 
-// Helper function to format time
-function formatTime(ms) {
-    if (ms < 1000) return 'less than a second';
-    const seconds = Math.floor(ms / 1000);
-    if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''}`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes} minute${minutes !== 1 ? 's' : ''} ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
-}
+// Model size in bytes (1.7B model is roughly 1.1 GB)
+const MODEL_SIZE = 1.1 * 1024 * 1024 * 1024;
 
 // Chat history with system message
 let messages = [{
@@ -123,24 +116,22 @@ worker.addEventListener('message', (e) => {
             loadingText.textContent = data;
             break;
 
-        case 'progress':
-            loadingDiv.classList.remove('hidden');
-            if (typeof progress === 'number') {
-                console.log('Model loading progress:', progress + '%');
+        case 'message':
+            if (e.data.loaded !== undefined) {
+                // Calculate and update progress
+                const progress = (e.data.loaded / MODEL_SIZE) * 100;
                 const roundedProgress = Math.round(progress);
                 modelProgress.style.width = `${progress}%`;
                 modelPercent.textContent = `${roundedProgress}%`;
                 
-                // Update bytes loaded and model name
-                if (e.data.loaded) {
-                    const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
-                    bytesLoaded.textContent = `${loadedMB} MB loaded`;
-                }
-
-                // Update loading text with model name if available
-                if (e.data.modelName && loadingText) {
-                    loadingText.textContent = `Loading ${e.data.modelName}`;
-                }
+                // Update loaded size
+                const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
+                bytesLoaded.textContent = `${loadedMB} MB loaded`;
+            }
+            
+            // Update model name if provided
+            if (e.data.modelName && loadingText) {
+                loadingText.textContent = `Loading ${e.data.modelName}`;
             }
             break;
 
