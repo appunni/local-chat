@@ -27,34 +27,25 @@ async function check() {
  */
 class TextGenerationPipeline {
   static model_id = "HuggingFaceTB/SmolLM2-1.7B-Instruct";
-  static tokenizerProgress = 0;
-  static modelProgress = 0;
+  static currentProgress = 0;
 
   static async getInstance(progress_callback = null) {
     const wrappedCallback = (progress) => {
-      console.log('Raw progress data:', progress);
-      if (progress?.status === 'progress') {
-        // Determine which component is loading and update its progress
-        if (progress.name.includes('tokenizer')) {
-          this.tokenizerProgress = progress.progress || 0;
-        } else {
-          this.modelProgress = progress.progress || 0;
-        }
-        
-        // Calculate combined progress (tokenizer: 20%, model: 80%)
-        const totalProgress = (this.tokenizerProgress * 0.2) + (this.modelProgress * 0.8);
-        
+      if (progress?.status === 'progress' && progress?.progress > this.currentProgress) {
+        this.currentProgress = progress.progress;
         self.postMessage({
           status: 'progress',
-          progress: totalProgress,
-          text: `Loading: ${Math.round(totalProgress)}%`
+          progress: this.currentProgress,
+          text: `Loading: ${Math.round(this.currentProgress)}%`
         });
       }
     };
 
+    // Reset progress at the start of loading
+    this.currentProgress = 0;
+
     if (!this.tokenizer) {
       console.log('Loading tokenizer...');
-      this.tokenizerProgress = 0;
       this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
         progress_callback: wrappedCallback,
       });
@@ -62,7 +53,6 @@ class TextGenerationPipeline {
 
     if (!this.model) {
       console.log('Loading model...');
-      this.modelProgress = 0;
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
         dtype: "q4f16",
         device: "webgpu",
