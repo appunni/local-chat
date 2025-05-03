@@ -29,14 +29,22 @@ class TextGenerationPipeline {
   static model_id = "HuggingFaceTB/SmolLM2-1.7B-Instruct";
   
   static async getInstance(progress_callback = null) {
+    const startTime = performance.now();
     const wrappedCallback = (progress) => {
       console.log('Raw progress data:', progress);
       if (progress?.status === 'progress') {
         const type = progress.name.includes('tokenizer') ? 'tokenizer' : 'model';
+        const currentTime = performance.now();
+        const elapsedTime = currentTime - startTime;
+        const estimatedTotal = elapsedTime / (progress.progress / 100);
+        const remainingTime = Math.max(0, estimatedTotal - elapsedTime);
+        
         self.postMessage({
           status: 'progress',
           type: type,
-          progress: progress.progress || 0
+          progress: progress.progress || 0,
+          timeRemaining: remainingTime,
+          stage: progress.name || type
         });
       }
     };

@@ -16,6 +16,17 @@ const tokenizerProgress = document.getElementById('tokenizer-progress');
 const modelProgress = document.getElementById('model-progress');
 const tokenizerPercent = document.getElementById('tokenizer-percent');
 const modelPercent = document.getElementById('model-percent');
+const estimatedTime = document.getElementById('estimated-time');
+
+// Helper function to format time
+function formatTime(ms) {
+    if (ms < 1000) return 'less than a second';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
+}
 
 // Chat history with system message
 let messages = [{
@@ -123,9 +134,19 @@ worker.addEventListener('message', (e) => {
                 if (type === 'tokenizer') {
                     tokenizerProgress.style.width = `${progress}%`;
                     tokenizerPercent.textContent = `${roundedProgress}%`;
+                    if (data.timeRemaining) {
+                        estimatedTime.textContent = `Tokenizer: ${formatTime(data.timeRemaining)} remaining`;
+                    }
                 } else if (type === 'model') {
                     modelProgress.style.width = `${progress}%`;
                     modelPercent.textContent = `${roundedProgress}%`;
+                    if (data.timeRemaining) {
+                        estimatedTime.textContent = `Model: ${formatTime(data.timeRemaining)} remaining`;
+                    }
+                }
+                
+                if (data.stage) {
+                    loadingText.textContent = `Loading ${data.stage}...`;
                 }
             }
             break;
@@ -133,6 +154,7 @@ worker.addEventListener('message', (e) => {
         case 'ready':
             console.log('Components loaded successfully');
             loadingText.textContent = 'Ready to chat!';
+            estimatedTime.textContent = 'Loading complete';
             setTimeout(hideLoading, 1500);
             break;
 
