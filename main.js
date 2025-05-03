@@ -131,10 +131,15 @@ worker.addEventListener('message', (e) => {
                 modelProgress.style.width = `${progress}%`;
                 modelPercent.textContent = `${roundedProgress}%`;
                 
-                // Update bytes loaded
+                // Update bytes loaded and model name
                 if (e.data.loaded) {
                     const loadedMB = (e.data.loaded / (1024 * 1024)).toFixed(1);
                     bytesLoaded.textContent = `${loadedMB} MB loaded`;
+                }
+
+                // Update loading text with model name if available
+                if (e.data.modelName && loadingText) {
+                    loadingText.textContent = `Loading ${e.data.modelName}`;
                 }
             }
             break;
