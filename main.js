@@ -91,8 +91,8 @@ stopButton.addEventListener('click', () => {
 // Handle worker messages
 let currentAssistantMessage = '';
 worker.addEventListener('message', (e) => {
-    const { status, data, output, tps } = e.data;
-    console.log('Received worker message:', { status, data, output, tps });
+    const { status, data, output, phase, progress, loaded, total, timeRemaining, elapsedTime, totalLoadTime, message } = e.data;
+    console.log('Received worker message:', e.data);
 
     switch (status) {
         case 'error':
@@ -105,20 +105,26 @@ worker.addEventListener('message', (e) => {
 
         case 'loading':
             console.log('Loading status:', data);
-            loadingText.textContent = data;
+            loadingText.innerHTML = getLoadingMessage(e.data);
+            if (typeof progress === 'number') {
+                progressBar.style.width = `${progress}%`;
+            }
+            // Add phase-specific styling
+            updateLoadingPhase(phase);
             break;
 
         case 'progress':
-            if (data && typeof data.loaded === 'number' && typeof data.total === 'number') {
-                const progress = Math.round((data.loaded / data.total) * 100);
+            if (typeof progress === 'number') {
                 console.log('Loading progress:', progress + '%');
                 progressBar.style.width = `${progress}%`;
+                loadingText.innerHTML = getLoadingMessage(e.data);
             }
             break;
 
         case 'ready':
-            console.log('Model ready for chat');
-            hideLoading();
+            console.log('Model ready for chat:', message);
+            loadingText.innerHTML = `<span class="text-green-500">${message}</span>`;
+            setTimeout(hideLoading, 1500); // Show completion message briefly
             break;
 
         case 'start':
@@ -152,6 +158,63 @@ worker.addEventListener('message', (e) => {
             break;
     }
 });
+
+// Helper function to format loading messages with progress details
+function getLoadingMessage(data) {
+    const { phase, data: statusText, progress, loaded, total, timeRemaining, elapsedTime } = data;
+    
+    let message = `<div class="space-y-1">`;
+    
+    // Phase indicator
+    const phases = {
+        'initialization': '🚀 Initialization',
+        'downloading': '📥 Downloading',
+        'compilation': '⚙️ Compilation',
+        'warmup': '🔥 Warm-up'
+    };
+    
+    message += `<div class="font-bold">${phases[phase] || 'Loading'}</div>`;
+    message += `<div>${statusText}</div>`;
+    
+    // Add progress details for downloading phase
+    if (phase === 'downloading' && loaded && total) {
+        message += `<div class="text-sm text-gray-600">
+            ${loaded} / ${total} (${progress}%)<br>
+            ${timeRemaining ? `⏱️ ~${timeRemaining} min remaining` : ''}
+            ${elapsedTime ? `(${elapsedTime}s elapsed)` : ''}
+        </div>`;
+    }
+    
+    message += '</div>';
+    return message;
+}
+
+// Update loading phase styling
+function updateLoadingPhase(phase) {
+    // Remove all previous phase classes
+    progressBar.classList.remove(
+        'bg-blue-500',   // initialization
+        'bg-green-500',  // downloading
+        'bg-yellow-500', // compilation
+        'bg-purple-500'  // warmup
+    );
+    
+    // Add new phase-specific class
+    switch (phase) {
+        case 'initialization':
+            progressBar.classList.add('bg-blue-500');
+            break;
+        case 'downloading':
+            progressBar.classList.add('bg-green-500');
+            break;
+        case 'compilation':
+            progressBar.classList.add('bg-yellow-500');
+            break;
+        case 'warmup':
+            progressBar.classList.add('bg-purple-500');
+            break;
+    }
+}
 
 // Start initialization
 initialize();

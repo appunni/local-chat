@@ -15,12 +15,21 @@
 
             <!-- Loading indicator -->
             <div id="loading" class="hidden">
-                <div class="flex items-center justify-center space-x-2 mb-4">
-                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                    <span class="text-blue-500" id="loading-text">Loading model...</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div class="bg-blue-500 h-2.5 rounded-full" id="progress-bar" style="width: 0%"></div>
+                <div class="flex flex-col items-center justify-center space-y-4 mb-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                        <div class="text-blue-500 font-medium" id="loading-text">Loading model...</div>
+                    </div>
+                    
+                    <!-- Progress bar container -->
+                    <div class="w-full">
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden transition-all duration-300">
+                            <div class="h-3 rounded-full transition-all duration-300 ease-in-out" 
+                                 id="progress-bar" 
+                                 style="width: 0%">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
