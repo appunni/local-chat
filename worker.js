@@ -143,23 +143,35 @@ async function load() {
   const [tokenizer, model] = await TextGenerationPipeline.getInstance((progress) => {
     const elapsedMs = performance.now() - loadStartTime;
     
-    if (progress.status === "progress") {
-      // Calculate loading stats
-      const loaded = progress.data.loaded || 0;
-      const total = progress.data.total || TOTAL_MODEL_SIZE;
-      const percent = Math.round((loaded / total) * 100);
-      const remainingMinutes = calculateTimeRemaining(loaded, total, elapsedMs);
-      
-      self.postMessage({
-        ...progress,
-        phase: "downloading",
-        data: "Downloading model weights...",
-        loaded: formatBytes(loaded),
-        total: formatBytes(total),
-        progress: percent,
-        timeRemaining: remainingMinutes,
-        elapsedTime: Math.round(elapsedMs / 1000)
-      });
+    // Handle progress updates with safety checks
+    if (progress?.status === "progress" && progress?.data) {
+      try {
+        // Safely access data with fallbacks
+        const loaded = progress.data?.loaded ?? 0;
+        const total = progress.data?.total ?? TOTAL_MODEL_SIZE;
+        const percent = Math.round((loaded / total) * 100);
+        const remainingMinutes = loaded > 0 ? calculateTimeRemaining(loaded, total, elapsedMs) : null;
+        
+        self.postMessage({
+          status: "progress",
+          phase: "downloading",
+          data: "Downloading model weights...",
+          loaded: formatBytes(loaded),
+          total: formatBytes(total),
+          progress: percent,
+          timeRemaining: remainingMinutes,
+          elapsedTime: Math.round(elapsedMs / 1000)
+        });
+      } catch (error) {
+        console.error('Error processing progress data:', error);
+        // Send a basic progress update on error
+        self.postMessage({
+          status: "progress",
+          phase: "downloading",
+          data: "Downloading model weights...",
+          progress: 0
+        });
+      }
     }
   });
 
