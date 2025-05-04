@@ -1,8 +1,11 @@
-// Initialize the worker
+// Initialize the worker but don't load model automatically
 const worker = new Worker('worker.js', { type: 'module' });
 console.log('Web Worker initialized');
 
 // UI Elements
+const modelInfo = document.getElementById('model-info');
+const chatInterface = document.getElementById('chat-interface');
+const loadModelButton = document.getElementById('load-model');
 const loadingDiv = document.getElementById('loading');
 const loadingText = document.getElementById('loading-text');
 const chatMessages = document.getElementById('chat-messages');
@@ -195,5 +198,10 @@ worker.addEventListener('message', (e) => {
     }
 });
 
-// Start initialization
-initialize();
+// Add load model button click handler
+loadModelButton.addEventListener('click', () => {
+    console.log('Starting model initialization...');
+    modelInfo.classList.add('hidden');
+    chatInterface.classList.remove('hidden');
+    initialize();
+});

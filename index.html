@@ -10,8 +10,26 @@
 
 <body class="bg-gray-100 h-screen">
     <div class="container mx-auto p-4 h-full flex flex-col">
-        <div class="bg-white rounded-lg shadow-lg p-6 flex-1 flex flex-col h-[calc(100vh-2rem)]">
+        <!-- Model Info Card -->
+        <div id="model-info" class="bg-white rounded-lg shadow-lg p-6 mb-4">
             <h1 class="text-2xl font-bold mb-4">Local Chat</h1>
+            <div class="space-y-4">
+                <div class="bg-blue-50 p-4 rounded-lg text-gray-700">
+                    <p>This is a demonstration project showcasing how to run Large Language Models locally in the browser using Transformers.js and WebGPU-acceleration. It uses SmolLM2-1.7B-Instruct model with 4-bit quantization for efficient execution.</p>
+                </div>
+
+                <div class="flex flex-col items-center text-center">
+                    <p class="text-gray-600 mb-3">Would you like to try chatting with a locally-running LLM? Click below to load the model!</p>
+                    <button id="load-model" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-semibold">
+                        Load Model
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface (hidden initially) -->
+        <div id="chat-interface" class="bg-white rounded-lg shadow-lg p-6 flex-1 flex flex-col h-[calc(100vh-2rem)] hidden">
+            <h2 class="text-xl font-bold mb-4">Chat</h2>
 
             <!-- Loading indicator -->
             <div id="loading" class="hidden mb-4 bg-white p-4 rounded-lg">
