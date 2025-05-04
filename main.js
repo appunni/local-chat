@@ -47,6 +47,13 @@ function hideLoading() {
     sendButton.disabled = false;
 }
 
+// Scroll chat to bottom
+function scrollToBottom() {
+    setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, 100);
+}
+
 // Add a message to the chat
 function addMessage(content, isUser = false) {
     console.log(`Adding ${isUser ? 'user' : 'assistant'} message:`, content);
@@ -60,7 +67,7 @@ function addMessage(content, isUser = false) {
 
     messageDiv.appendChild(messageBubble);
     chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    scrollToBottom();
 }
 
 // Handle form submission
@@ -175,6 +182,8 @@ worker.addEventListener('message', (e) => {
                 if (lastMessage) {
                     // Replace "Generating..." with the final output
                     lastMessage.textContent = output;
+                    // Ensure the message is visible by scrolling to bottom
+                    scrollToBottom();
                 }
                 currentAssistantMessage = output;
                 messages.push({ role: "assistant", content: output });
