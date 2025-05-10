@@ -100,8 +100,11 @@ async function generate(messages) {
   };
 
   const callback_function = (output) => {
-    // Only log tokens for debugging
-    console.log('Token generated:', output);
+    // Send each token to the main thread
+    self.postMessage({
+      status: "token",
+      output: output
+    });
   };
 
   const streamer = new TextStreamer(tokenizer, {

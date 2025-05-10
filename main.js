@@ -64,8 +64,8 @@ function addMessage(content, isUser = false) {
     messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
 
     const messageBubble = document.createElement('div');
-    messageBubble.className = `max-w-[70%] p-3 rounded-lg ${isUser ? 'bg-blue-500 text-white' : 'bg-gray-100'
-        }`;
+    messageBubble.className = `max-w-[70%] p-3 rounded-lg ${isUser ? 'bg-blue-500 text-white' : 'bg-gray-100'}`;
+    messageBubble.style.whiteSpace = 'pre-wrap';  // Add this line to preserve whitespace
     messageBubble.textContent = content;
 
     messageDiv.appendChild(messageBubble);
@@ -167,30 +167,25 @@ worker.addEventListener('message', (e) => {
         case 'start':
             console.log('Starting new generation');
             currentAssistantMessage = '';
-            // Show "Generating..." message
-            addMessage('Generating...', false);
+            // Add an empty message div that we'll update with tokens
+            addMessage('', false);
             break;
 
-        case 'update':
-            // Just log the tokens but don't update UI
+        case 'token':
             if (output) {
-                console.log('Token generated:', output);
+                currentAssistantMessage += output;
+                const lastMessage = chatMessages.lastElementChild.querySelector('div');
+                if (lastMessage) {
+                    lastMessage.textContent = currentAssistantMessage;
+                    scrollToBottom();
+                }
             }
             break;
 
         case 'complete':
-            console.log('Generation complete, final output:', output);
-            if (output) {
-                const lastMessage = chatMessages.lastElementChild.querySelector('div');
-                if (lastMessage) {
-                    // Replace "Generating..." with the final output
-                    lastMessage.textContent = output;
-                    // Ensure the message is visible by scrolling to bottom
-                    scrollToBottom();
-                }
-                currentAssistantMessage = output;
-                messages.push({ role: "assistant", content: output });
-            }
+            console.log('Generation complete');
+            // No need to update UI since we've been streaming
+            messages.push({ role: "assistant", content: currentAssistantMessage });
             stopButton.classList.add('hidden');
             sendButton.disabled = false;
             userInput.disabled = false;
