@@ -90,7 +90,43 @@
 
     <script type="module">
         // Initialize the generic worker
-        const worker = new Worker('../generic-llm-worker.js', { type: 'module' });
+        let worker = new Worker('../generic-llm-worker.js', { type: 'module' });
+
+        // Function to create a new worker and set up event listeners
+        function createNewWorker() {
+            worker = new Worker('../generic-llm-worker.js', { type: 'module' });
+            setupWorkerEventListeners();
+        }
+
+        // Set up worker event listeners
+        function setupWorkerEventListeners() {
+            worker.addEventListener('message', (e) => {
+                const { type, status, data } = e.data;
+
+                switch (type) {
+                    case 'check':
+                        if (status === 'error') {
+                            alert('WebGPU not supported: ' + data.error);
+                        }
+                        break;
+
+                    case 'initialize':
+                        handleInitializeResponse(status, data);
+                        break;
+
+                    case 'generateSingle':
+                        handleGenerationResponse(status, data);
+                        break;
+
+                    case 'interrupt':
+                        handleInterruptResponse(status, data);
+                        break;
+                }
+            });
+        }
+
+        // Initialize event listeners for the first worker
+        setupWorkerEventListeners();
 
         // UI Elements
         const modelSelect = document.getElementById('model-select');
@@ -130,9 +166,23 @@
         // Initialize model when selection changes
         modelSelect.addEventListener('change', () => {
             if (isModelLoaded) {
-                initializeModel();
+                // Need to recreate worker to switch models since the worker
+                // doesn't support dynamic model switching
+                recreateWorkerAndInitialize();
             }
         });
+
+        // Recreate worker and initialize with new model
+        function recreateWorkerAndInitialize() {
+            // Terminate current worker
+            worker.terminate();
+            
+            // Create new worker
+            createNewWorker();
+            
+            // Initialize with selected model
+            initializeModel();
+        }
 
         // Initialize model
         function initializeModel() {
@@ -201,31 +251,6 @@
         // Handle stop button
         stopButton.addEventListener('click', () => {
             worker.postMessage({ type: 'interrupt' });
-        });
-
-        // Handle worker messages
-        worker.addEventListener('message', (e) => {
-            const { type, status, data } = e.data;
-
-            switch (type) {
-                case 'check':
-                    if (status === 'error') {
-                        alert('WebGPU not supported: ' + data.error);
-                    }
-                    break;
-
-                case 'initialize':
-                    handleInitializeResponse(status, data);
-                    break;
-
-                case 'generateSingle':
-                    handleGenerationResponse(status, data);
-                    break;
-
-                case 'interrupt':
-                    handleInterruptResponse(status, data);
-                    break;
-            }
         });
 
         function handleInitializeResponse(status, data) {
