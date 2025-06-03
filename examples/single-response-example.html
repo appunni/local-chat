@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Response Example - Generic LLM Worker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto p-4 max-w-2xl">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold mb-4">Single Response Generator</h1>
+            <p class="text-gray-600 mb-6">This example demonstrates using the generic LLM worker for single responses without conversation history.</p>
+            
+            <!-- Model Selection -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Model:</label>
+                <select id="model-select" class="w-full p-2 border rounded-lg">
+                    <option value="smollm2-360m">SmolLM2 360M (Fast, Lightweight)</option>
+                    <option value="smollm2-1.7b" selected>SmolLM2 1.7B (Better Quality)</option>
+                </select>
+            </div>
+
+            <!-- Loading Status -->
+            <div id="loading" class="hidden mb-4 bg-gray-50 p-4 rounded-lg">
+                <div id="loading-text" class="text-blue-600 font-semibold text-center mb-2">Initializing...</div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <span id="bytes-loaded" class="font-mono text-gray-600">0 MB loaded</span>
+                        <span id="model-percent" class="font-semibold">0%</span>
+                    </div>
+                    <div class="h-2 bg-gray-200 rounded overflow-hidden">
+                        <div id="model-progress" class="h-full bg-blue-500 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Form -->
+            <form id="prompt-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">System Message (Optional):</label>
+                    <textarea id="system-input" 
+                        class="w-full p-2 border rounded-lg h-20 resize-none"
+                        placeholder="You are a helpful assistant..."></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Prompt:</label>
+                    <textarea id="prompt-input" 
+                        class="w-full p-2 border rounded-lg h-32 resize-none"
+                        placeholder="Enter your prompt here..."
+                        required></textarea>
+                </div>
+
+                <!-- Generation Parameters -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Temperature:</label>
+                        <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" class="w-full">
+                        <span id="temp-value" class="text-sm text-gray-600">0.7</span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Max Tokens:</label>
+                        <input type="range" id="max-tokens" min="50" max="1024" step="50" value="512" class="w-full">
+                        <span id="tokens-value" class="text-sm text-gray-600">512</span>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button type="submit" id="generate-button" 
+                        class="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+                        disabled>
+                        Generate Response
+                    </button>
+                    <button type="button" id="stop-button"
+                        class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 hidden">
+                        Stop
+                    </button>
+                </div>
+            </form>
+
+            <!-- Response Display -->
+            <div id="response-section" class="mt-6 hidden">
+                <h3 class="text-lg font-semibold mb-2">Response:</h3>
+                <div id="response-text" class="bg-gray-50 p-4 rounded-lg whitespace-pre-wrap"></div>
+                <div id="response-stats" class="mt-2 text-sm text-gray-600"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Initialize the generic worker
+        const worker = new Worker('../generic-llm-worker.js', { type: 'module' });
+
+        // UI Elements
+        const modelSelect = document.getElementById('model-select');
+        const loadingDiv = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        const modelProgress = document.getElementById('model-progress');
+        const modelPercent = document.getElementById('model-percent');
+        const bytesLoaded = document.getElementById('bytes-loaded');
+        
+        const promptForm = document.getElementById('prompt-form');
+        const systemInput = document.getElementById('system-input');
+        const promptInput = document.getElementById('prompt-input');
+        const generateButton = document.getElementById('generate-button');
+        const stopButton = document.getElementById('stop-button');
+        
+        const temperatureSlider = document.getElementById('temperature');
+        const tempValue = document.getElementById('temp-value');
+        const maxTokensSlider = document.getElementById('max-tokens');
+        const tokensValue = document.getElementById('tokens-value');
+        
+        const responseSection = document.getElementById('response-section');
+        const responseText = document.getElementById('response-text');
+        const responseStats = document.getElementById('response-stats');
+
+        let isModelLoaded = false;
+        let isGenerating = false;
+
+        // Update slider values
+        temperatureSlider.addEventListener('input', (e) => {
+            tempValue.textContent = e.target.value;
+        });
+
+        maxTokensSlider.addEventListener('input', (e) => {
+            tokensValue.textContent = e.target.value;
+        });
+
+        // Initialize model when selection changes
+        modelSelect.addEventListener('change', () => {
+            if (isModelLoaded) {
+                initializeModel();
+            }
+        });
+
+        // Initialize model
+        function initializeModel() {
+            const selectedModel = modelSelect.value;
+            isModelLoaded = false;
+            generateButton.disabled = true;
+            
+            showLoading();
+            
+            worker.postMessage({
+                type: 'initialize',
+                data: {
+                    model: selectedModel,
+                    temperature: parseFloat(temperatureSlider.value),
+                    max_new_tokens: parseInt(maxTokensSlider.value)
+                }
+            });
+        }
+
+        function showLoading() {
+            loadingDiv.classList.remove('hidden');
+            responseSection.classList.add('hidden');
+        }
+
+        function hideLoading() {
+            loadingDiv.classList.add('hidden');
+            generateButton.disabled = false;
+            isModelLoaded = true;
+        }
+
+        // Handle form submission
+        promptForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (!isModelLoaded || isGenerating) return;
+            
+            const prompt = promptInput.value.trim();
+            const systemMessage = systemInput.value.trim();
+            
+            if (!prompt) return;
+
+            // Show response section and clear previous content
+            responseSection.classList.remove('hidden');
+            responseText.textContent = '';
+            responseStats.textContent = 'Generating...';
+            
+            // Update UI state
+            generateButton.disabled = true;
+            stopButton.classList.remove('hidden');
+            isGenerating = true;
+
+            // Send generation request
+            worker.postMessage({
+                type: 'generateSingle',
+                data: {
+                    prompt: prompt,
+                    systemMessage: systemMessage || undefined,
+                    generationConfig: {
+                        temperature: parseFloat(temperatureSlider.value),
+                        max_new_tokens: parseInt(maxTokensSlider.value)
+                    }
+                }
+            });
+        });
+
+        // Handle stop button
+        stopButton.addEventListener('click', () => {
+            worker.postMessage({ type: 'interrupt' });
+        });
+
+        // Handle worker messages
+        worker.addEventListener('message', (e) => {
+            const { type, status, data } = e.data;
+
+            switch (type) {
+                case 'check':
+                    if (status === 'error') {
+                        alert('WebGPU not supported: ' + data.error);
+                    }
+                    break;
+
+                case 'initialize':
+                    handleInitializeResponse(status, data);
+                    break;
+
+                case 'generateSingle':
+                    handleGenerationResponse(status, data);
+                    break;
+
+                case 'interrupt':
+                    handleInterruptResponse(status, data);
+                    break;
+            }
+        });
+
+        function handleInitializeResponse(status, data) {
+            switch (status) {
+                case 'loading':
+                    loadingText.textContent = data.message;
+                    break;
+                    
+                case 'progress':
+                    const { loaded, total, percentage, modelName } = data;
+                    if (percentage !== undefined) {
+                        modelProgress.style.width = `${percentage}%`;
+                        modelPercent.textContent = `${percentage}%`;
+                    }
+                    if (loaded !== undefined) {
+                        const loadedMB = (loaded / (1024 * 1024)).toFixed(1);
+                        bytesLoaded.textContent = `${loadedMB} MB loaded`;
+                    }
+                    if (modelName) {
+                        loadingText.textContent = `Loading ${modelName}...`;
+                    }
+                    break;
+                    
+                case 'ready':
+                    loadingText.textContent = 'Model ready!';
+                    setTimeout(hideLoading, 1000);
+                    break;
+                    
+                case 'error':
+                    loadingText.textContent = 'Error: ' + data.error;
+                    alert('Failed to load model: ' + data.error);
+                    break;
+            }
+        }
+
+        function handleGenerationResponse(status, data) {
+            switch (status) {
+                case 'start':
+                    responseText.textContent = '';
+                    responseStats.textContent = 'Generating...';
+                    break;
+                    
+                case 'streaming':
+                    responseText.textContent = data.fullText;
+                    break;
+                    
+                case 'complete':
+                    responseText.textContent = data.text;
+                    responseStats.textContent = `Generated ${data.text.split(' ').length} words at ${data.tokensPerSecond.toFixed(1)} tokens/sec`;
+                    
+                    // Reset UI state
+                    generateButton.disabled = false;
+                    stopButton.classList.add('hidden');
+                    isGenerating = false;
+                    break;
+                    
+                case 'error':
+                    responseText.textContent = 'Error: ' + data.error;
+                    responseStats.textContent = '';
+                    generateButton.disabled = false;
+                    stopButton.classList.add('hidden');
+                    isGenerating = false;
+                    break;
+            }
+        }
+
+        function handleInterruptResponse(status, data) {
+            responseText.textContent += ' [Interrupted]';
+            responseStats.textContent = 'Generation interrupted';
+            generateButton.disabled = false;
+            stopButton.classList.add('hidden');
+            isGenerating = false;
+        }
+
+        // Auto-initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check WebGPU support
+            worker.postMessage({ type: 'check' });
+            
+            // Initialize with default model
+            setTimeout(() => {
+                initializeModel();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
