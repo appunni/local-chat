@@ -7,15 +7,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto p-4 max-w-6xl">
+    <div class="container mx-auto p-4 max-w-4xl">
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h1 class="text-2xl font-bold mb-4">Multi-Session Chat Example</h1>
-            <p class="text-gray-600 mb-6">This example demonstrates managing multiple conversation sessions with different personas.</p>
+            <p class="text-gray-600 mb-6">Simplified example showing session management with the generic worker.</p>
             
+            
+            <!-- Session Selector -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Choose Session:</label>
+                <select id="session-selector" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="coding-assistant">💻 Coding Assistant</option>
+                    <option value="creative-writer">✍️ Creative Writer</option>
+                    <option value="science-tutor">🔬 Science Tutor</option>
+                    <option value="fitness-coach">💪 Fitness Coach</option>
+                </select>
+            </div>
+
             <!-- Loading Status -->
             <div id="loading" class="mb-4 bg-gray-50 p-4 rounded-lg">
-                <div id="loading-text" class="text-blue-600 font-semibold text-center mb-2">Initializing...</div>
-                <div class="space-y-2">
+                <div id="loading-text" class="text-blue-600 font-semibold text-center mb-2">Click Load Model to start...</div>
+                <div class="space-y-2 hidden" id="progress-container">
                     <div class="flex justify-between items-center text-sm">
                         <span id="bytes-loaded" class="font-mono text-gray-600">0 MB loaded</span>
                         <span id="model-percent" class="font-semibold">0%</span>
@@ -26,21 +38,20 @@
                 </div>
             </div>
 
-            <!-- Session Tabs -->
-            <div class="flex space-x-2 mb-4 overflow-x-auto" id="session-tabs">
-                <!-- Tabs will be generated dynamically -->
+            <!-- Load Model Button -->
+            <div class="text-center mb-4" id="load-section">
+                <button id="load-model" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-semibold">
+                    Load Model
+                </button>
             </div>
 
             <!-- Chat Interface -->
             <div id="chat-container" class="hidden">
-                <!-- Active session info -->
+                <!-- Current session info -->
                 <div id="session-info" class="bg-blue-50 p-3 rounded-lg mb-4">
-                    <h3 class="font-semibold">Current Session: <span id="current-session-name">Loading...</span></h3>
-                    <p class="text-sm text-gray-600" id="current-session-description">Loading...</p>
-                    <div class="text-xs text-gray-500 mt-1">
-                        Messages: <span id="message-count">0</span> | 
-                        <button id="clear-session" class="text-red-600 hover:underline">Clear Session</button>
-                    </div>
+                    <h3 class="font-semibold">Session: <span id="current-session-name">Coding Assistant</span></h3>
+                    <p class="text-sm text-gray-600" id="current-session-description">A senior software engineer</p>
+                    <button id="clear-session" class="text-xs text-red-600 hover:underline mt-1">Clear Session</button>
                 </div>
 
                 <!-- Chat messages -->
@@ -70,51 +81,44 @@
         // Initialize the generic worker
         const worker = new Worker('../generic-llm-worker.js', { type: 'module' });
 
-        // Session configurations with different personas
+        // Session configurations
         const SESSIONS = {
             'coding-assistant': {
                 name: 'Coding Assistant',
-                description: 'A senior software engineer who helps with programming questions',
-                systemMessage: 'You are a senior software engineer with expertise in JavaScript, Python, and web development. Provide clear, practical coding advice and examples. Be concise and focus on best practices.',
-                icon: '💻',
-                color: 'bg-blue-100 border-blue-300 text-blue-800'
+                description: 'A senior software engineer who helps with programming',
+                systemMessage: 'You are a senior software engineer. Provide clear, practical coding advice.'
             },
             'creative-writer': {
-                name: 'Creative Writer',
+                name: 'Creative Writer', 
                 description: 'A creative storyteller and writing coach',
-                systemMessage: 'You are a creative writer and storytelling expert. Help users with creative writing, story ideas, character development, and narrative techniques. Be inspiring and imaginative.',
-                icon: '✍️',
-                color: 'bg-purple-100 border-purple-300 text-purple-800'
+                systemMessage: 'You are a creative writer. Help with creative writing and storytelling.'
             },
             'science-tutor': {
                 name: 'Science Tutor',
-                description: 'A patient science teacher who explains complex concepts simply',
-                systemMessage: 'You are a patient and knowledgeable science teacher. Explain scientific concepts clearly using analogies and examples. Break down complex topics into understandable parts.',
-                icon: '🔬',
-                color: 'bg-green-100 border-green-300 text-green-800'
+                description: 'A patient science teacher',
+                systemMessage: 'You are a science teacher. Explain concepts clearly with examples.'
             },
             'fitness-coach': {
                 name: 'Fitness Coach',
-                description: 'A motivational fitness and nutrition expert',
-                systemMessage: 'You are a certified fitness trainer and nutrition expert. Provide practical fitness advice, workout routines, and healthy lifestyle tips. Be motivational and encouraging.',
-                icon: '💪',
-                color: 'bg-orange-100 border-orange-300 text-orange-800'
+                description: 'A motivational fitness expert',
+                systemMessage: 'You are a fitness trainer. Provide practical fitness and health advice.'
             }
         };
 
         // UI Elements
         const loadingDiv = document.getElementById('loading');
         const loadingText = document.getElementById('loading-text');
+        const progressContainer = document.getElementById('progress-container');
         const modelProgress = document.getElementById('model-progress');
         const modelPercent = document.getElementById('model-percent');
         const bytesLoaded = document.getElementById('bytes-loaded');
+        const loadSection = document.getElementById('load-section');
+        const loadModelButton = document.getElementById('load-model');
         
-        const sessionTabs = document.getElementById('session-tabs');
+        const sessionSelector = document.getElementById('session-selector');
         const chatContainer = document.getElementById('chat-container');
-        const sessionInfo = document.getElementById('session-info');
         const currentSessionName = document.getElementById('current-session-name');
         const currentSessionDescription = document.getElementById('current-session-description');
-        const messageCount = document.getElementById('message-count');
         const clearSessionButton = document.getElementById('clear-session');
         
         const chatMessages = document.getElementById('chat-messages');
@@ -123,71 +127,19 @@
         const sendButton = document.getElementById('send-button');
         const stopButton = document.getElementById('stop-button');
 
-        let currentSessionId = null;
+        let currentSessionId = 'coding-assistant';
         let isGenerating = false;
         let isModelLoaded = false;
-        let messageCounts = {};
 
-        // Initialize session tabs
-        function initializeSessionTabs() {
-            sessionTabs.innerHTML = '';
-            
-            Object.entries(SESSIONS).forEach(([sessionId, config]) => {
-                const tab = document.createElement('button');
-                tab.className = `px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${config.color}`;
-                tab.innerHTML = `
-                    <span>${config.icon}</span>
-                    <span class="font-medium">${config.name}</span>
-                    <span class="text-xs opacity-75" id="count-${sessionId}">0</span>
-                `;
-                tab.addEventListener('click', () => switchSession(sessionId));
-                sessionTabs.appendChild(tab);
-                
-                messageCounts[sessionId] = 0;
-            });
-            
-            // Set initial session
-            switchSession('coding-assistant');
+        // Update session info display
+        function updateSessionInfo() {
+            const session = SESSIONS[currentSessionId];
+            currentSessionName.textContent = session.name;
+            currentSessionDescription.textContent = session.description;
         }
 
-        // Switch between sessions
-        function switchSession(sessionId) {
-            if (isGenerating) return; // Don't switch during generation
-            
-            currentSessionId = sessionId;
-            const config = SESSIONS[sessionId];
-            
-            // Update UI
-            currentSessionName.textContent = config.name;
-            currentSessionDescription.textContent = config.description;
-            messageCount.textContent = messageCounts[sessionId] || 0;
-            
-            // Update tab appearances
-            document.querySelectorAll('#session-tabs button').forEach((tab, index) => {
-                const sessionKey = Object.keys(SESSIONS)[index];
-                const sessionConfig = SESSIONS[sessionKey];
-                if (sessionKey === sessionId) {
-                    tab.className = `px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${sessionConfig.color} ring-2 ring-blue-400`;
-                } else {
-                    tab.className = `px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${sessionConfig.color}`;
-                }
-            });
-            
-            // Clear chat display (sessions are maintained on the worker side)
-            chatMessages.innerHTML = '';
-            
-            // Get session info from worker to update message count
-            worker.postMessage({
-                type: 'getSessionInfo',
-                data: { sessionId: sessionId }
-            });
-        }
-
-        // Add message to chat display
-        function addMessage(content, isUser = false, sessionId = null) {
-            // Only add to display if it's the current session
-            if (sessionId && sessionId !== currentSessionId) return;
-            
+        // Add message to chat
+        function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
 
@@ -207,7 +159,32 @@
             return messageBubble;
         }
 
-        // Handle form submission
+        // Initialize model
+        function initializeModel() {
+            loadSection.classList.add('hidden');
+            progressContainer.classList.remove('hidden');
+            loadingText.textContent = 'Initializing...';
+            
+            worker.postMessage({
+                type: 'initialize',
+                data: {
+                    model: 'smollm2-1.7b',
+                    temperature: 0.7,
+                    max_new_tokens: 512
+                }
+            });
+        }
+
+        // Event Listeners
+        loadModelButton.addEventListener('click', initializeModel);
+
+        sessionSelector.addEventListener('change', (e) => {
+            if (isGenerating) return;
+            currentSessionId = e.target.value;
+            updateSessionInfo();
+            chatMessages.innerHTML = ''; // Clear display for new session
+        });
+
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -216,13 +193,8 @@
             const message = userInput.value.trim();
             if (!message) return;
 
-            // Add user message to display
-            addMessage(message, true, currentSessionId);
-            
-            // Update message count
-            messageCounts[currentSessionId] = (messageCounts[currentSessionId] || 0) + 1;
-            messageCount.textContent = messageCounts[currentSessionId];
-            document.getElementById(`count-${currentSessionId}`).textContent = messageCounts[currentSessionId];
+            // Add user message
+            addMessage(message, true);
 
             // Clear input and update UI
             userInput.value = '';
@@ -238,27 +210,25 @@
                 data: {
                     message: message,
                     sessionId: currentSessionId,
-                    systemMessage: sessionConfig.systemMessage
+                    systemMessage: {
+                        role: "system",
+                        content: sessionConfig.systemMessage
+                    }
                 }
             });
         });
 
-        // Handle stop button
         stopButton.addEventListener('click', () => {
             worker.postMessage({ type: 'interrupt' });
         });
 
-        // Handle clear session button
         clearSessionButton.addEventListener('click', () => {
-            if (confirm(`Clear all messages in ${SESSIONS[currentSessionId].name}?`)) {
+            if (confirm(`Clear session: ${SESSIONS[currentSessionId].name}?`)) {
                 worker.postMessage({
                     type: 'clearSession',
                     data: { sessionId: currentSessionId }
                 });
                 chatMessages.innerHTML = '';
-                messageCounts[currentSessionId] = 0;
-                messageCount.textContent = '0';
-                document.getElementById(`count-${currentSessionId}`).textContent = '0';
             }
         });
 
@@ -277,21 +247,6 @@
                     handleChatResponse(status, data);
                     break;
                     
-                case 'getSessionInfo':
-                    if (status === 'success' && data.sessionId === currentSessionId) {
-                        const count = data.info ? Math.max(0, data.info.messageCount - 1) : 0; // Subtract system message
-                        messageCounts[data.sessionId] = count;
-                        messageCount.textContent = count;
-                        document.getElementById(`count-${data.sessionId}`).textContent = count;
-                    }
-                    break;
-                    
-                case 'clearSession':
-                    if (status === 'success') {
-                        console.log(`Session ${data.sessionId} cleared`);
-                    }
-                    break;
-                    
                 case 'interrupt':
                     if (currentMessageBubble) {
                         currentMessageBubble.textContent += ' [Interrupted]';
@@ -308,7 +263,7 @@
                     break;
                     
                 case 'progress':
-                    const { loaded, total, percentage, modelName } = data;
+                    const { loaded, percentage, modelName } = data;
                     if (percentage !== undefined) {
                         modelProgress.style.width = `${percentage}%`;
                         modelPercent.textContent = `${percentage}%`;
@@ -330,6 +285,7 @@
                         userInput.disabled = false;
                         sendButton.disabled = false;
                         isModelLoaded = true;
+                        updateSessionInfo();
                     }, 1000);
                     break;
                     
@@ -343,7 +299,7 @@
         function handleChatResponse(status, data) {
             switch (status) {
                 case 'start':
-                    currentMessageBubble = addMessage('', false, data.sessionId);
+                    currentMessageBubble = addMessage('', false);
                     break;
                     
                 case 'streaming':
@@ -357,14 +313,6 @@
                     if (currentMessageBubble) {
                         currentMessageBubble.textContent = data.text;
                     }
-                    
-                    // Update message count
-                    messageCounts[data.sessionId] = (messageCounts[data.sessionId] || 0) + 1;
-                    if (data.sessionId === currentSessionId) {
-                        messageCount.textContent = messageCounts[data.sessionId];
-                    }
-                    document.getElementById(`count-${data.sessionId}`).textContent = messageCounts[data.sessionId];
-                    
                     resetGenerationState();
                     break;
                     
@@ -385,23 +333,8 @@
             isGenerating = false;
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeSessionTabs();
-            
-            // Check WebGPU support
-            worker.postMessage({ type: 'check' });
-            
-            // Initialize model
-            worker.postMessage({
-                type: 'initialize',
-                data: {
-                    model: 'smollm2-1.7b',
-                    temperature: 0.7,
-                    max_new_tokens: 512
-                }
-            });
-        });
+        // Initialize session info on load
+        updateSessionInfo();
     </script>
 </body>
 </html>
