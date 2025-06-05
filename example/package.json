@@ -1,0 +1,22 @@
+{
+  "name": "generic-llm-worker-example",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Example demonstrating Generic LLM Worker with Vite + TypeScript + Tailwind CSS",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "tailwindcss": "^4.1.8",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.5.2"
+  }
+}
