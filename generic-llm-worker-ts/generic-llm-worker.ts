@@ -5,7 +5,7 @@ import {
   InterruptableStoppingCriteria,
 } from "@huggingface/transformers";
 
-import {
+import type {
   ModelConfig,
   GenerationConfig,
   Message,
@@ -22,10 +22,9 @@ import {
   SingleGenerationResult,
   InternalGenerationResult,
   WorkerMessageType,
-  WorkerMessageStatus,
   WorkerMessage,
   WorkerEventData,
-} from "./types.js";
+} from "./types";
 
 /**
  * Generic LLM Worker - A reusable web worker for running language models in the browser
@@ -119,7 +118,6 @@ class GenericLLMPipeline {
   public modelInfo: ModelConfig | null = null;
   private config: GenerationConfig | null = null;
   private sessionHistory = new Map<string, SessionData>();
-  private currentSessionId: string | null = null;
   private currentStoppingCriteria: any = null;
 
   /**
