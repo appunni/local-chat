@@ -1,0 +1,30 @@
+{
+  "name": "local-chat-ts",
+  "version": "1.0.0",
+  "description": "TypeScript version of Generic LLM Worker for running language models in the browser",
+  "type": "module",
+  "main": "generic-llm-worker.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "dev": "tsc --noEmit --watch"
+  },
+  "keywords": [
+    "llm",
+    "ai",
+    "machine-learning",
+    "webworker",
+    "typescript",
+    "huggingface",
+    "transformers",
+    "webgpu"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/web": "^0.0.239",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.5.0"
+  }
+}
